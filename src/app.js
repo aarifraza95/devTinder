@@ -1,21 +1,63 @@
 const express = require('express');
 const app = express();
-
-const adminAuth = require('./middlewares/auth')
-// app.use('/',
-//     (req, res, next)=>{
-//     console.log('home');
-//     res.send('hello from 1');
-//     next();
-// });
-
-app.use('/admin', adminAuth)
-app.get('/admin/admindetails', (req,res)=>{
-    res.send("admindetails") ; 
+const connectDB = require("./config/database");
+const User = require('./models/user')
+//creating post api
+app.post("/signup",async (req, res)=>{
+   
+    //creating new instance of user model
+    const user = new User({
+        firstName:"Aadil",
+        lastName:"RaAzada",
+        emailId:"aadil@gmail.com",
+        password:"aadil123"
+    });
+    try {
+    await user.save();
+    res.send("user created");
+    }
+    catch{
+        res.status(400).send("unable to save to db" + err.message);
+    }
 })
-app.get('/admin/admindetails2', (req,res)=>{
-    res.send("admindetails2") ; 
+
+connectDB()
+.then(()=>{
+    console.log("connected to db")
+    app.listen(3000,() =>{
+        console.log('server is running on port 3000')
+    })
 })
+.catch((err)=>{
+    console.log("error connectiong to db");
+})
+
+// const adminAuth = require('./middlewares/auth')
+
+// //Error handling with proper error message and status code
+// app.use('/', (err,req, res, next)=>{
+//     if(err){
+//         res.status(401).send("something went wrong"); //sending error msg with response and status code
+//         next();
+//     }
+//     else{
+//         console.log('home');
+//         res.send("action success");
+        
+//     }
+// })
+
+  
+// // adding authentication
+// app.use('/admin', adminAuth) //applying auth on all routes starting with /admin
+// app.get('/admin/admindetails', (req,res)=>{    // auth will be checked here also
+//     res.send("admindetails") ; //route handler
+// })
+// app.get('/admin/admindetails2', (req,res)=>{   // auth will be checked here also
+//     res.send("admindetails2") ; 
+// })
+
+
 // app.use('/deleteuser', (req,res)=>{
 //     const token = "xyz";
 //     const Isauth = token ==="xyz";
@@ -44,6 +86,8 @@ app.get('/admin/admindetails2', (req,res)=>{
     
 // })
 
-app.listen(3000,() =>{
-    console.log('server is running on port 3000')
-})
+// // givng ports no to listen on server
+
+// app.listen(3000,() =>{
+//     console.log('server is running on port 3000')
+// })
