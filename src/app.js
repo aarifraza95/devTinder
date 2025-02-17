@@ -1,42 +1,63 @@
-const express = require('express');
+const express = require("express");
 const app = express();
 const connectDB = require("./config/database");
-const User = require('./models/user')
+const User = require("./models/user");
 
-app.use(express.json());
+app.use(express.json()); //middleware
 //creating post api
-app.post("/signup",async (req, res)=>{
-   
-    
-    console.log(req.body); 
-    //creating new instance of user model
-    const user = new User(req.body); // 
-    // const user = new user({
-    //     firstName: "aarif",
-    //     lastName: "raza",
-    //     emailId: "aarif@gmail.com",
-    //     password: "123",
-    //     age: "18"
-    // })
-    try {
+app.post("/signup", async (req, res) => {
+  console.log(req.body);
+  //creating new instance of user model
+  const user = new User(req.body); //
+  // const user = new user({
+  //     firstName: "aarif",
+  //     lastName: "raza",
+  //     emailId: "aarif@gmail.com",
+  //     password: "123",
+  //     age: "18"
+  // })
+  try {
     await user.save();
     res.send("user added successfully");
+  } catch {
+    res.status(400).send("unable to save to db" + err.message);
+  }
+});
+//creating get method
+app.get("/user", async (req, res) => {
+  const userEmail = req.body.emailId;
+  try {
+    console.log(userEmail);
+    const user = await User.findOne({ emailId: userEmail });
+    if (!user) {
+      res.status(400).send("user does't exist");
+    } else {
+      res.send(user);
     }
-    catch{
-        res.status(400).send("unable to save to db" + err.message);
-    }
-})
+  } catch {
+    // res.status(400).send("something went wrong" + err.message);
+  }
+});
+//feed api - GET/feed // to get ll data present from docuemnt
+app.get("/feed", async (req, res) => {
+  try {
+    const user = await User.find();
+    res.send(user);
+  } catch {
+    res.status(400).send("something went wrong" + err.message);
+  }
+});
 
 connectDB()
-.then(()=>{
-    console.log("connected to db")
-    app.listen(3000,() =>{
-        console.log('server is running on port 3000')
-    })
-})
-.catch((err)=>{
+  .then(() => {
+    console.log("connected to db");
+    app.listen(3000, () => {
+      console.log("server is running on port 3000");
+    });
+  })
+  .catch((err) => {
     console.log("error connectiong to db");
-})
+  });
 
 // const adminAuth = require('./middlewares/auth')
 
@@ -49,20 +70,18 @@ connectDB()
 //     else{
 //         console.log('home');
 //         res.send("action success");
-        
+
 //     }
 // })
 
-  
 // // adding authentication
 // app.use('/admin', adminAuth) //applying auth on all routes starting with /admin
 // app.get('/admin/admindetails', (req,res)=>{    // auth will be checked here also
 //     res.send("admindetails") ; //route handler
 // })
 // app.get('/admin/admindetails2', (req,res)=>{   // auth will be checked here also
-//     res.send("admindetails2") ; 
+//     res.send("admindetails2") ;
 // })
-
 
 // app.use('/deleteuser', (req,res)=>{
 //     const token = "xyz";
@@ -72,7 +91,7 @@ connectDB()
 //     }
 //     else{
 //         res.status(401).send("Unauthorized request");
-//     }   
+//     }
 // })
 // app.get('/test', (req,res, next)=>{
 //     console.log('test2');
@@ -80,7 +99,7 @@ connectDB()
 //     // next();
 // })
 
-// app.use('/test', 
+// app.use('/test',
 //     (req,res, next)=>{
 //         console.log("test3");
 //     // res.send('hello from test3');
@@ -89,7 +108,7 @@ connectDB()
 //     // (req,res) =>{
 //     //     console.log("test2")
 //     //     res.send('hello from test2');
-    
+
 // })
 
 // // givng ports no to listen on server
