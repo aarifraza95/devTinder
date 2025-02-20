@@ -2,13 +2,12 @@ const express = require("express");
 const app = express();
 const connectDB = require("./config/database");
 const User = require("./models/user");
-
+const {validatorSignup} = require("./utils/validator");
+const bcrypt = require("bcrypt");
 app.use(express.json()); //middleware
 //creating post api
 app.post("/signup", async (req, res) => {
-  console.log(req.body);
-  //creating new instance of user model
-  const user = new User(req.body); //
+  // console.log(req.body);
   // const user = new user({
   //     firstName: "aarif",
   //     lastName: "raza",
@@ -17,10 +16,43 @@ app.post("/signup", async (req, res) => {
   //     age: "18"
   // })
   try {
+    validatorSignup(req);
+    const {firstName,lastName,emailId, password}= req.body;
+    //encryp the password
+    // const {password}= req.body;
+    const passwordHash = await bcrypt.hash(password,10 );
+     console.log(passwordHash);
+  //creating new instance of user model
+  const user = new User({
+    firstName,
+    lastName,
+    emailId,
+    password: passwordHash,
+  }); //
     await user.save();
     res.send("user added successfully");
-  } catch {
+  } catch(err) {
     res.status(400).send("unable to save to db" + err.message);
+  }
+});
+
+//login api
+app.post("/login", async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) {
+      throw new Error("user does't exist");
+    }
+
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatch) {
+      res.status(400).send("password does't match");
+    } else {
+      res.send("login successfull");
+    }
+  } catch (err) {
+    res.status(400).send("unable to login" + err.message);
   }
 });
 //creating get method
@@ -48,6 +80,25 @@ app.get("/feed", async (req, res) => {
   }
 });
 
+app.delete("/delete", async (req, res) => {
+    const userId = req.body.userId;
+    try {
+        // const user = await User.findByIdAndDelete(userId);
+        const user = await User.findByIdAndDelete({ _id: userId});
+        if (!user) {
+            res.status(404).send("User not found");
+        } else {
+            res.send("User deleted successfully");
+        }
+    } catch (err) {
+        res.status(500).send("Something went wrong: " + err.message);
+    }
+});
+
+app.patch("/signup", async (req,res)=>{
+    
+})
+ 
 connectDB()
   .then(() => {
     console.log("connected to db");
