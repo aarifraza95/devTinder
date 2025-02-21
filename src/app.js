@@ -4,22 +4,18 @@ const connectDB = require("./config/database");
 const User = require("./models/user");
 const {validatorSignup} = require("./utils/validator");
 const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+const {userAuth} = require("./middlewares/auth");
+
 app.use(express.json()); //middleware
-//creating post api
+app.use(cookieParser());
+//creating post api and bcrypt
 app.post("/signup", async (req, res) => {
-  // console.log(req.body);
-  // const user = new user({
-  //     firstName: "aarif",
-  //     lastName: "raza",
-  //     emailId: "aarif@gmail.com",
-  //     password: "123",
-  //     age: "18"
-  // })
   try {
     validatorSignup(req);
     const {firstName,lastName,emailId, password}= req.body;
     //encryp the password
-    // const {password}= req.body;
     const passwordHash = await bcrypt.hash(password,10 );
      console.log(passwordHash);
   //creating new instance of user model
@@ -35,26 +31,62 @@ app.post("/signup", async (req, res) => {
     res.status(400).send("unable to save to db" + err.message);
   }
 });
-
-//login api
+//login api and bcrypt
 app.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
     const user = await User.findOne({ emailId: emailId });
     if (!user) {
-      throw new Error("user does't exist");
+      throw new Error("Invalid credenctials");
     }
-
+    //comparing plain password with hashed password
     const isPasswordMatch = await bcrypt.compare(password, user.password);
-    if (!isPasswordMatch) {
-      res.status(400).send("password does't match");
-    } else {
+    if (isPasswordMatch) {
+      //create json web token
+      const token =  await jwt.sign({_id: user._id}, "DEV@Tinder$790");
+      console.log(token);
+      // add the token to cookie and send the response back to the user
+      res.cookie("token", token);
       res.send("login successfull");
+      
+    } else {
+      throw new Error ("Invalid credentials"); 
     }
   } catch (err) {
-    res.status(400).send("unable to login" + err.message);
+    res.status(400).send("ERROR" + err.message);
   }
 });
+//cookie-parser - it is also a middle ware
+app.get("/profile", async(req,res)=>{
+  try{
+  const cookies = req.cookies;
+  const {token}= cookies;
+  console.log(token);
+  if(!token){
+    throw new Error("Invalid token");
+  }
+  //decoding JWT token
+  const decodeMessage = await jwt.verify(token, "DEV@Tinder$790");
+  const {_id} = decodeMessage;
+  const user= await User.findById(_id);
+  //verifying by token
+  if(!user){
+    throw new Error("User not found");
+  }
+  // if(token === "shhhhhhhhhguyag5256t262t72dbtq555555"){
+  //   res.send("profile page");
+  // }
+  // else{
+  //   res.status(401).send("unauthorized request");
+  // }
+  // console.log(cookies);
+  res.send(user);
+}
+ catch (err) {
+  res.status(400).send("ERROR : "+ err.message);
+}
+})
+
 //creating get method
 app.get("/user", async (req, res) => {
   const userEmail = req.body.emailId;
