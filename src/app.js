@@ -2,11 +2,11 @@ const express = require("express");
 const app = express();
 const connectDB = require("./config/database");
 const User = require("./models/user");
-const {validatorSignup} = require("./utils/validator");
+const { validatorSignup } = require("./utils/validator");
 const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
-const {userAuth} = require("./middlewares/auth");
+const { userAuth } = require("./middlewares/auth");
 
 app.use(express.json()); //middleware
 app.use(cookieParser());
@@ -14,20 +14,20 @@ app.use(cookieParser());
 app.post("/signup", async (req, res) => {
   try {
     validatorSignup(req);
-    const {firstName,lastName,emailId, password}= req.body;
+    const { firstName, lastName, emailId, password } = req.body;
     //encryp the password
-    const passwordHash = await bcrypt.hash(password,10 );
-     console.log(passwordHash);
-  //creating new instance of user model
-  const user = new User({
-    firstName,
-    lastName,
-    emailId,
-    password: passwordHash,
-  }); //
+    const passwordHash = await bcrypt.hash(password, 10);
+    console.log(passwordHash);
+    //creating new instance of user model
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: passwordHash,
+    }); //
     await user.save();
     res.send("user added successfully");
-  } catch(err) {
+  } catch (err) {
     res.status(400).send("unable to save to db" + err.message);
   }
 });
@@ -40,54 +40,52 @@ app.post("/login", async (req, res) => {
       throw new Error("Invalid credenctials");
     }
     //comparing plain password with hashed password
-    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    const isPasswordMatch = await user.validatePassword(password);
     if (isPasswordMatch) {
       //create json web token
-      const token =  await jwt.sign({_id: user._id}, "DEV@Tinder$790");
-      console.log(token);
+      const token = await user.getJWT();
       // add the token to cookie and send the response back to the user
-      res.cookie("token", token);
+      res.cookie("token", token, {
+        expires: new Date(Date.now() + 1 * 360000),
+        httpOnly: true,
+      });
       res.send("login successfull");
-      
     } else {
-      throw new Error ("Invalid credentials"); 
+      throw new Error("Invalid credentials");
     }
   } catch (err) {
     res.status(400).send("ERROR" + err.message);
   }
 });
 //cookie-parser - it is also a middle ware
-app.get("/profile", async(req,res)=>{
-  try{
-  const cookies = req.cookies;
-  const {token}= cookies;
-  console.log(token);
-  if(!token){
-    throw new Error("Invalid token");
+app.get("/profile", userAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    // if(!token){
+    //   throw new Error("Invalid token");
+    // }
+    // //decoding JWT token
+    // const decodeMessage = await jwt.verify(token, "DEV@Tinder$790");
+    // const {_id} = decodeMessage;
+    // const user= await User.findById(_id);
+    // //verifying by token
+    // if(!user){
+    //   throw new Error("User not found");
+    // }
+    // if(token === "shhhhhhhhhguyag5256t262t72dbtq555555"){
+    //   res.send("profile page");
+    // }
+    // else{
+    //   res.status(401).send("unauthorized request");
+    // }
+    // console.log(cookies);
+    res.send(user);
+  } catch (err) {
+    res.status(400).send("ERROR : " + err.message);
   }
-  //decoding JWT token
-  const decodeMessage = await jwt.verify(token, "DEV@Tinder$790");
-  const {_id} = decodeMessage;
-  const user= await User.findById(_id);
-  //verifying by token
-  if(!user){
-    throw new Error("User not found");
-  }
-  // if(token === "shhhhhhhhhguyag5256t262t72dbtq555555"){
-  //   res.send("profile page");
-  // }
-  // else{
-  //   res.status(401).send("unauthorized request");
-  // }
-  // console.log(cookies);
-  res.send(user);
-}
- catch (err) {
-  res.status(400).send("ERROR : "+ err.message);
-}
-})
+});
 
-//creating get method
+//creating  user get method
 app.get("/user", async (req, res) => {
   const userEmail = req.body.emailId;
   try {
@@ -113,24 +111,22 @@ app.get("/feed", async (req, res) => {
 });
 
 app.delete("/delete", async (req, res) => {
-    const userId = req.body.userId;
-    try {
-        // const user = await User.findByIdAndDelete(userId);
-        const user = await User.findByIdAndDelete({ _id: userId});
-        if (!user) {
-            res.status(404).send("User not found");
-        } else {
-            res.send("User deleted successfully");
-        }
-    } catch (err) {
-        res.status(500).send("Something went wrong: " + err.message);
+  const userId = req.body.userId;
+  try {
+    // const user = await User.findByIdAndDelete(userId);
+    const user = await User.findByIdAndDelete({ _id: userId });
+    if (!user) {
+      res.status(404).send("User not found");
+    } else {
+      res.send("User deleted successfully");
     }
+  } catch (err) {
+    res.status(500).send("Something went wrong: " + err.message);
+  }
 });
 
-app.patch("/signup", async (req,res)=>{
-    
-})
- 
+app.patch("/signup", async (req, res) => {});
+
 connectDB()
   .then(() => {
     console.log("connected to db");
