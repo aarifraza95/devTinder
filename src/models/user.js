@@ -9,18 +9,28 @@ const userSchema = new mongoose.Schema({
   lastName: {
     type: String,
   },
+  gender: {
+    type: String,
+  },
+  age: {
+    type: Number,
+  },
+  about:{
+    type: String,
+  },
   emailId: {
     type: String,
   },
   password: {
     type: String,
   },
-  age: {
-    type: Number,
+  skills:{
+    type: [String],
   },
-  gender: {
-    type: String,
-  },
+  
+},
+{
+  timestamps: true,
 });
 userSchema.methods.getJWT = async function () {
   const user = this;
